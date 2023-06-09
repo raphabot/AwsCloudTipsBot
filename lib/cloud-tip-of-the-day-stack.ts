@@ -9,7 +9,7 @@ import * as s3notifications from 'aws-cdk-lib/aws-s3-notifications';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 const UNUSED_TIPS_OBJECT_KEY = 'unused-tips.csv';
-const TIP_OF_THE_DAY_OBJECT_KEY = 'tip-of-the-day.csv';
+const TIP_OF_THE_DAY_OBJECT_KEY = 'tip-of-the-day.json';
 
 export class CloudTipOfTheDayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
