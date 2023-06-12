@@ -9,3 +9,4 @@ cdk.out
 
 # Secret
 twitter-creds.json
+mastodon-creds.json

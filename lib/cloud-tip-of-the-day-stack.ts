@@ -20,9 +20,17 @@ export class CloudTipOfTheDayStack extends cdk.Stack {
       description: 'The name of the secret containing the Twitter credentials',
       minLength: 1,
     });
+    
+    const mastodonSecretNameParameter = new cdk.CfnParameter(this, 'MastodonSecretName', {
+      type: 'String',
+      description: 'The name of the secret containing the Mastodon credentials',
+      minLength: 1,
+    });
 
     // Create an S3 bucket
-    const tipsBucket = new s3.Bucket(this, 'TipsBucket', {});
+    const tipsBucket = new s3.Bucket(this, 'TipsBucket', {
+      eventBridgeEnabled: true,
+    });
 
     // Write local CSV file to the bucket
     new s3deployment.BucketDeployment(this, 'DeployWebsite', {
@@ -76,10 +84,49 @@ export class CloudTipOfTheDayStack extends cdk.Stack {
     // Grant read permission to the tweetTipLambda
     tipsBucket.grantRead(tweetTipLambda);
 
-    // Configure the bucket event to trigger the tweetTipLambda when TipOfTheDay.csv is written
-    tipsBucket.addObjectCreatedNotification(new s3notifications.LambdaDestination(tweetTipLambda), {
-      prefix: TIP_OF_THE_DAY_OBJECT_KEY,
+    const mastodonSecret = secretsmanager.Secret.fromSecretNameV2(this, 'MastodonSecret', mastodonSecretNameParameter.valueAsString);
+    
+    // Create the lambda function to post the tip of the day to Mastodon
+    const mastodonTipLambda = new lambda.Function(this, 'MastodonTipLambda', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      architecture: lambda.Architecture.ARM_64,
+      code: lambda.Code.fromAsset('./lambda/Mastodon/'),
+      handler: 'index.handler',
+      environment: {
+        MASTODON_SECRET_NAME: mastodonSecret.secretName,
+        TIPS_BUCKET_NAME: tipsBucket.bucketName,
+        TIP_OF_THE_DAY_OBJECT_KEY,
+      },
     });
+
+    // Grant tweetTipLambda read permissions to the twitterSecret
+    mastodonSecret.grantRead(mastodonTipLambda);
+
+    // Grant read permission to the tweetTipLambda
+    tipsBucket.grantRead(mastodonTipLambda);
+
+    // Creates the EventBridhe Rule to trigger the tweetTipLambda and the mastodonTipLambda when the tip of the day is updated
+    new events.Rule(this, 'UnusedTipsRule', {
+      description: 'Trigger both the tweetTipLambda and the mastodonTipLambda when the tip of the day file is updated',
+      eventPattern: {
+        source: ['aws.s3'],
+        detailType: ['Object Created'],
+        detail: {
+          bucket: {
+            name: [tipsBucket.bucketName],
+          },
+          object: {
+            key: [UNUSED_TIPS_OBJECT_KEY],
+          },
+        },
+      },
+      targets: [
+        new targets.LambdaFunction(tweetTipLambda),
+        new targets.LambdaFunction(mastodonTipLambda),
+      ],
+
+    });
+
   }
 }
 
