@@ -1,14 +1,22 @@
-# Welcome to your CDK TypeScript project
+# AWS Tip of the Day CDK Project
 
-This is a blank project for CDK development with TypeScript.
+This is the source code for the Twitter bot: @AWSDailyTips.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## How to run your own
 
-## Useful commands
+1. Make sure to have the proper Twitter API credentials
+2. You'll need to create manually a Secret in AWS Secret. To do so:
+    1. Update `twitter-creds-example.json` with your own credentials.
+    2. Run:
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+    ```bash
+    aws secretsmanager create-secret --name DailyCloudTipsTwitterCreds \
+    --description "Twitter secrets for @DailyAwsSecrets" \
+    --secret-string file://twitter-creds-example.json
+    ```
+
+3. To deploy the CDK project, run:
+
+```bash
+cdk deploy --require-approval never --parameters TwitterSecretName=DailyCloudTipsTwitterCreds`
+```
