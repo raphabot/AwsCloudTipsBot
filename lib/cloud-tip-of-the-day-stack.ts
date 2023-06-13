@@ -5,8 +5,8 @@ import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3deployment from 'aws-cdk-lib/aws-s3-deployment';
-import * as s3notifications from 'aws-cdk-lib/aws-s3-notifications';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as logs from 'aws-cdk-lib/aws-logs';
 
 const UNUSED_TIPS_OBJECT_KEY = 'unused-tips.csv';
 const TIP_OF_THE_DAY_OBJECT_KEY = 'tip-of-the-day.json';
@@ -36,6 +36,9 @@ export class CloudTipOfTheDayStack extends cdk.Stack {
     new s3deployment.BucketDeployment(this, 'DeployWebsite', {
       sources: [s3deployment.Source.asset('./bucket-contents')],
       destinationBucket: tipsBucket,
+      retainOnDelete: false,
+      exclude: [TIP_OF_THE_DAY_OBJECT_KEY],
+      logRetention: logs.RetentionDays.ONE_DAY,
     });
 
     // Create the lambda function to pick a tip
